@@ -33,7 +33,6 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.Promise;
 import io.netty.util.concurrent.ScheduledFuture;
-import io.netty.util.internal.OneTimeTask;
 import io.netty.util.internal.StringUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
@@ -151,7 +150,7 @@ final class DnsQueryContext {
     // Schedule a query timeout task if necessary.
     final long queryTimeoutMillis = parent.queryTimeoutMillis();
     if (queryTimeoutMillis > 0) {
-      timeoutFuture = parent.ch.eventLoop().schedule(new OneTimeTask() {
+      timeoutFuture = parent.ch.eventLoop().schedule(new Runnable() {
         @Override
         public void run() {
           if (promise.isDone()) {
