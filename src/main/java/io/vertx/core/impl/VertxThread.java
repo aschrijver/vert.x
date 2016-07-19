@@ -39,6 +39,11 @@ final class VertxThread extends FastThreadLocalThread {
   }
 
   void setContext(ContextImpl context) {
+    if (context != null) {
+      VertxThreadFactory.count.incrementAndGet();
+    } else {
+      VertxThreadFactory.count.decrementAndGet();
+    }
     this.context = context;
   }
 

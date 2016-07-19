@@ -35,6 +35,13 @@ public class VertxThreadFactory implements ThreadFactory {
     weakMap.put(thread, FOO);
   }
 
+  public static final AtomicInteger count = new AtomicInteger();
+
+  public static int getSize() {
+//    return count.get();
+    return weakMap.size();
+  }
+
   private final String prefix;
   private final AtomicInteger threadCount = new AtomicInteger(0);
   private final BlockedThreadChecker checker;
