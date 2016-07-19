@@ -35,11 +35,18 @@ public class VertxThreadFactory implements ThreadFactory {
     weakMap.put(thread, FOO);
   }
 
-  public static final AtomicInteger count = new AtomicInteger();
-
   public static int getSize() {
-//    return count.get();
     return weakMap.size();
+  }
+
+  public static int getSize2() {
+    AtomicInteger count = new AtomicInteger();
+    weakMap.keySet().forEach(t -> {
+      if (t.getContext() != null) {
+        count.incrementAndGet();
+      }
+    });
+    return count.get();
   }
 
   private final String prefix;
