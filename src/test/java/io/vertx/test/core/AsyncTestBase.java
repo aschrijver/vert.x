@@ -57,7 +57,7 @@ public class AsyncTestBase {
 
 
   protected void setUp() throws Exception {
-    log.info("Starting test: " + this.getClass().getSimpleName() + "#" + name.getMethodName() + " size=" + VertxThreadFactory.getSize() + "/" + VertxThreadFactory.getSize2());
+    log.info("Starting test: " + this.getClass().getSimpleName() + "#" + name.getMethodName() + " size=" + VertxThreadFactory.getSize());
     mainThreadName = Thread.currentThread().getName();
     tearingDown = false;
     waitFor(1);

@@ -23,19 +23,25 @@ import io.netty.util.concurrent.FastThreadLocalThread;
  */
 final class VertxThread extends FastThreadLocalThread {
 
+  private final VertxThreadFactory factory;
   private final boolean worker;
   private final long maxExecTime;
   private long execStart;
   private ContextImpl context;
 
-  public VertxThread(Runnable target, String name, boolean worker, long maxExecTime) {
+  public VertxThread(VertxThreadFactory factory, Runnable target, String name, boolean worker, long maxExecTime) {
     super(target, name);
+    this.factory = factory;
     this.worker = worker;
     this.maxExecTime = maxExecTime;
   }
 
   ContextImpl getContext() {
     return context;
+  }
+
+  VertxThreadFactory getFactory() {
+    return factory;
   }
 
   void setContext(ContextImpl context) {

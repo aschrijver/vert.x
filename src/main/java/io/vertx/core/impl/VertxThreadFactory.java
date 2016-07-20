@@ -32,21 +32,13 @@ public class VertxThreadFactory implements ThreadFactory {
   private static Map<VertxThread, Object> weakMap = new WeakHashMap<>();
 
   private static synchronized void addToMap(VertxThread thread) {
-    weakMap.put(thread, FOO);
+    synchronized(VertxThreadFactory.class) {
+      weakMap.put(thread, FOO);
+    }
   }
 
   public static int getSize() {
-    return weakMap.size();
-  }
-
-  public static int getSize2() {
-    AtomicInteger count = new AtomicInteger();
-    weakMap.keySet().forEach(t -> {
-      if (t.getContext() != null) {
-        count.incrementAndGet();
-      }
-    });
-    return count.get();
+    return 0;
   }
 
   private final String prefix;
@@ -62,16 +54,18 @@ public class VertxThreadFactory implements ThreadFactory {
     this.maxExecTime = maxExecTime;
   }
 
-  public static synchronized void unsetContext(ContextImpl ctx) {
-    for (VertxThread thread: weakMap.keySet()) {
-      if (thread.getContext() == ctx) {
-        thread.setContext(null);
+  public static void unsetContext(ContextImpl ctx) {
+    synchronized(VertxThreadFactory.class) {
+      for (VertxThread thread: weakMap.keySet()) {
+        if (thread.getContext() == ctx) {
+          thread.setContext(null);
+        }
       }
     }
   }
 
   public Thread newThread(Runnable runnable) {
-    VertxThread t = new VertxThread(runnable, prefix + threadCount.getAndIncrement(), worker, maxExecTime);
+    VertxThread t = new VertxThread(this, runnable, prefix + threadCount.getAndIncrement(), worker, maxExecTime);
     // Vert.x threads are NOT daemons - we want them to prevent JVM exit so embededd user doesn't
     // have to explicitly prevent JVM from exiting.
     if (checker != null) {
@@ -82,5 +76,15 @@ public class VertxThreadFactory implements ThreadFactory {
     // we want to prevent the JVM from exiting until Vert.x instances are closed
     t.setDaemon(false);
     return t;
+  }
+
+  void close() {
+    synchronized (VertxThreadFactory.class) {
+      for (VertxThread thread: weakMap.keySet()) {
+        if (thread.getFactory() == this) {
+          thread.setContext(null);
+        }
+      }
+    }
   }
 }

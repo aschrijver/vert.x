@@ -97,7 +97,9 @@ public class VertxImpl implements VertxInternal, MetricsProvider {
   private final Map<ServerID, NetServerImpl> sharedNetServers = new HashMap<>();
   private final WorkerPool workerPool;
   private final WorkerPool internalBlockingPool;
-  private final ThreadFactory eventLoopThreadFactory;
+  private final VertxThreadFactory workerThreadFactory;
+  private final VertxThreadFactory internalBlockingExecThreadFactory;
+  private final VertxThreadFactory eventLoopThreadFactory;
   private final NioEventLoopGroup eventLoopGroup;
   private final NioEventLoopGroup acceptorEventLoopGroup;
   private final BlockedThreadChecker checker;
@@ -136,11 +138,13 @@ public class VertxImpl implements VertxInternal, MetricsProvider {
 
     metrics = initialiseMetrics(options);
 
+    workerThreadFactory = new VertxThreadFactory("vert.x-worker-thread-", checker, true, options.getMaxWorkerExecuteTime());
     ExecutorService workerExec = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
-        new VertxThreadFactory("vert.x-worker-thread-", checker, true, options.getMaxWorkerExecuteTime()));
+        workerThreadFactory);
     PoolMetrics workerPoolMetrics = isMetricsEnabled() ? metrics.createMetrics(workerExec, "worker", "vert.x-worker-thread", options.getWorkerPoolSize()) : null;
+    internalBlockingExecThreadFactory = new VertxThreadFactory("vert.x-internal-blocking-", checker, true, options.getMaxWorkerExecuteTime());
     ExecutorService internalBlockingExec = Executors.newFixedThreadPool(options.getInternalBlockingPoolSize(),
-        new VertxThreadFactory("vert.x-internal-blocking-", checker, true, options.getMaxWorkerExecuteTime()));
+        internalBlockingExecThreadFactory);
     PoolMetrics internalBlockingPoolMetrics = isMetricsEnabled() ? metrics.createMetrics(internalBlockingExec, "worker", "vert.x-internal-blocking", options.getInternalBlockingPoolSize()) : null;
     internalBlockingPool = new WorkerPool(internalBlockingExec, internalBlockingPoolMetrics);
     namedWorkerPools = new HashMap<>();
@@ -693,7 +697,10 @@ public class VertxImpl implements VertxInternal, MetricsProvider {
     fileResolver.close(res -> {
 
       workerPool.close();
+      workerThreadFactory.close();
+
       internalBlockingPool.close();
+      internalBlockingExecThreadFactory.close();
 
       acceptorEventLoopGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS).addListener(new GenericFutureListener() {
         @Override
@@ -716,6 +723,7 @@ public class VertxImpl implements VertxInternal, MetricsProvider {
               if (completionHandler != null) {
                 eventLoopThreadFactory.newThread(() -> {
                   completionHandler.handle(Future.succeededFuture());
+                  eventLoopThreadFactory.close();
                 }).start();
               }
             }
