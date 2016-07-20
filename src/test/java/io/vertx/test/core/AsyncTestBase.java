@@ -18,7 +18,6 @@ package io.vertx.test.core;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.impl.VertxThreadFactory;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.hamcrest.Matcher;
@@ -57,7 +56,7 @@ public class AsyncTestBase {
 
 
   protected void setUp() throws Exception {
-    log.info("Starting test: " + this.getClass().getSimpleName() + "#" + name.getMethodName() + " size=" + VertxThreadFactory.getSize());
+    log.info("Starting test: " + this.getClass().getSimpleName() + "#" + name.getMethodName());
     mainThreadName = Thread.currentThread().getName();
     tearingDown = false;
     waitFor(1);

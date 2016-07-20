@@ -16,6 +16,7 @@
 
 package io.vertx.core.impl;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ThreadFactory;
@@ -35,10 +36,6 @@ public class VertxThreadFactory implements ThreadFactory {
     synchronized(VertxThreadFactory.class) {
       weakMap.put(thread, FOO);
     }
-  }
-
-  public static int getSize() {
-    return 0;
   }
 
   private final String prefix;
@@ -80,11 +77,14 @@ public class VertxThreadFactory implements ThreadFactory {
 
   void close() {
     synchronized (VertxThreadFactory.class) {
+      ArrayList<VertxThread> collected = new ArrayList<>();
       for (VertxThread thread: weakMap.keySet()) {
         if (thread.getFactory() == this) {
+          collected.add(thread);
           thread.setContext(null);
         }
       }
+      weakMap.keySet().removeAll(collected);
     }
   }
 }
