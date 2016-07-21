@@ -16,6 +16,9 @@
 
 package io.vertx.test.core;
 
+import io.netty.util.ThreadDeathWatcher;
+import io.netty.util.concurrent.FastThreadLocalThread;
+import io.netty.util.internal.InternalThreadLocalMap;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
@@ -28,7 +31,9 @@ import org.junit.Rule;
 import org.junit.internal.ArrayComparisonFailure;
 import org.junit.rules.TestName;
 
+import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -56,6 +61,31 @@ public class AsyncTestBase {
 
 
   protected void setUp() throws Exception {
+
+    Field watcherThreadField = ThreadDeathWatcher.class.getDeclaredField("watcherThread");
+    watcherThreadField.setAccessible(true);
+    FastThreadLocalThread watcherThread = (FastThreadLocalThread) watcherThreadField.get(null);
+    if (watcherThread != null) {
+      Field threadLocalMapField = FastThreadLocalThread.class.getDeclaredField("threadLocalMap");
+      threadLocalMapField.setAccessible(true);
+      InternalThreadLocalMap map = (InternalThreadLocalMap) threadLocalMapField.get(watcherThread);
+      if (map != null) {
+        Field indexedVariablesField = map.getClass().getSuperclass().getDeclaredField("indexedVariables");
+        indexedVariablesField.setAccessible(true);
+        Object[] obj = (Object[]) indexedVariablesField.get(map);
+        StringBuffer sb = new StringBuffer();
+        for (Object o : obj) {
+          if (o instanceof WeakHashMap) {
+            WeakHashMap wm = (WeakHashMap) o;
+            sb.append(" ").append(wm.size());
+          }
+        }
+        if (sb.length() > 0) {
+          log.info("weak maps " + sb);
+        }
+      }
+    }
+
     log.info("Starting test: " + this.getClass().getSimpleName() + "#" + name.getMethodName());
     mainThreadName = Thread.currentThread().getName();
     tearingDown = false;
